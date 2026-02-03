@@ -1,0 +1,40 @@
+@startuml
+title Deployment Diagram - Smart Bewässerungssystem
+
+node "SensorNode\nArduino Nano 33 IoT" as sensorNode {
+  artifact "Firmware: Sensor" as sensorFW
+}
+
+node "PumpNode\nArduino Nano 33 IoT" as pumpNode {
+  artifact "Firmware: Pumpe" as pumpFW
+}
+
+cloud "Arduino IoT Cloud" as cloud
+
+node "User Device\n(PC/Smartphone)" as userDevice {
+  artifact "Web Dashboard" as dashboard
+}
+
+node "Feuchtesensor" as moistureSensor
+node "Relaismodul" as relayModule
+node "Wasserpumpe" as waterPump
+
+
+
+' Layout-Zwang: Cloud oben
+cloud -down- sensorNode
+cloud -down- pumpNode
+cloud -down- userDevice
+
+
+' Netzwerk
+sensorNode -- cloud : WLAN / Internet\nMesswerte
+pumpNode -- cloud : WLAN / Internet\nKommandos / Konfiguration
+userDevice -- cloud : HTTPS\nDashboard Zugriff
+
+' Physische Verbindungen
+moistureSensor -- sensorNode
+relayModule -- pumpNode
+waterPump -- relayModule
+
+@enduml

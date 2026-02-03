@@ -1,0 +1,33 @@
+@startuml
+title Sequenzdiagramm – Bewässerungsvorgang
+
+actor "User" as user
+participant "Web Dashboard" as dashboard
+participant "Arduino IoT Cloud" as cloud
+participant "SensorNode" as sensor
+participant "PumpNode" as pump
+
+== Messung ==
+sensor -> cloud : sendet Bodenfeuchte
+
+cloud -> dashboard : aktualisiert Anzeige
+
+== Automatische Bewässerung ==
+alt Feuchte < Schwellwert
+  cloud -> pump : starte Bewässerung\n(Dauer)
+  pump -> pump : Pumpe EIN\nwarte Dauer\nPumpe AUS
+  pump -> cloud : Status senden
+  cloud -> dashboard : Status anzeigen
+else Feuchte ausreichend
+  cloud -> cloud : keine Aktion
+end
+
+== Manuelle Bewässerung ==
+user -> dashboard : manuell gießen
+dashboard -> cloud : Bewässerung anfordern
+cloud -> pump : starte Bewässerung\n(Dauer)
+pump -> pump : Pumpe EIN\nwarte Dauer\nPumpe AUS
+pump -> cloud : Status senden
+cloud -> dashboard : Status anzeigen
+
+@enduml

@@ -1,0 +1,17 @@
+@startuml
+title Aktivitätsdiagramm – Entscheidungslogik in der Cloud
+
+start
+
+:Feuchtewert vom SensorNode empfangen;
+:Schwellwert aus Konfiguration laden;
+
+if (Feuchte unter Schwellwert?) then (ja)
+  :Bewässerung erforderlich markieren;
+  :Bewässerungsbefehl an PumpNode senden;
+else (nein)
+  :Keine Bewässerung erforderlich;
+endif
+
+stop
+@enduml

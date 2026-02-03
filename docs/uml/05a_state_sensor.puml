@@ -1,0 +1,20 @@
+@startuml
+title Zustandsdiagramm – SensorNode 
+
+[*] --> INIT
+INIT : startet\nWLAN/Cloud verbinden
+INIT --> MEASURE : verbunden
+
+MEASURE : Feuchte messen
+MEASURE --> PUBLISH : Messwert senden
+PUBLISH : sendet Feuchte\nan Cloud
+
+PUBLISH --> MEASURE : nach Intervall
+
+MEASURE --> FAILSAFE : Verbindung verloren
+PUBLISH --> FAILSAFE : Verbindung verloren
+
+FAILSAFE : keine Sendung\nReconnect versuchen
+FAILSAFE --> INIT : Verbindung wieder ok
+
+@enduml

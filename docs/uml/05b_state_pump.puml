@@ -1,0 +1,23 @@
+@startuml
+title Zustandsdiagramm – PumpNode 
+
+[*] --> INIT
+INIT : startet\nWLAN/Cloud verbinden
+INIT --> IDLE : verbunden
+
+IDLE : wartet auf\nwateringNeeded oder\nmanuellen Befehl
+
+IDLE --> WATERING : wateringNeeded == true
+IDLE --> WATERING : manueller Befehl
+
+WATERING : Pumpe EIN\n(timer läuft)
+WATERING --> IDLE : Dauer abgelaufen
+
+IDLE --> FAILSAFE : Verbindung verloren
+WATERING --> FAILSAFE : Verbindung verloren
+
+FAILSAFE : Pumpe AUS\nReconnect versuchen
+FAILSAFE --> INIT : Verbindung wieder ok
+
+@enduml
+

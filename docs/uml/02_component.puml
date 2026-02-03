@@ -1,0 +1,16 @@
+@startuml
+skinparam componentStyle rectangle
+
+component "SensorNode\n(Nano 33 IoT)" as Sensor
+component "PumpNode\n(Nano 33 IoT)" as Pump
+
+component "Arduino IoT Cloud" as Cloud
+component "Web Dashboard" as Dashboard
+
+Sensor --> Cloud : sendet\nFeuchtewert
+Pump <-- Cloud : sendet\nBewässerungsbefehl
+
+Dashboard --> Cloud : Konfiguration\nmanuelle Bewässerung
+Dashboard <-- Cloud : Messwerte\nStatus
+
+@enduml
