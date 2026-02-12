@@ -14,10 +14,10 @@
 constexpr uint8_t PIN_SOIL_AO = A0;   // AO vom Sensor-Modul (LM393 Board) an A0
 
 // ---- Messung -----
-constexpr unsigned long MEASURE_INTERVAL_MS = 1000; // 1 Messung pro Sekunde
+constexpr unsigned long MEASURE_INTERVAL_MS = 5000; // alle 5 sekunden
 
 // ----- Kalibrierung (Platzhalter) ---
 // Diese Werte trägst du später nach deinen Tests ein.
 // Typisch: RAW_WET < RAW_DRY (aber das kann je nach Modul variieren!)
-constexpr int RAW_WET = 300;   // Beispielwert: Sensor in Wasser / sehr nasse Erde
-constexpr int RAW_DRY = 800;   // Beispielwert: Sensor in Luft / trockene Erde
+constexpr int RAW_WET = 330;   // nasse Erde/Wasser ~323–333
+constexpr int RAW_DRY = 1023;   // Luft/trocken ~1020–1023
