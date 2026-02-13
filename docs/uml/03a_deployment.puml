@@ -1,0 +1,25 @@
+@startuml
+title Deployment-Diagramm
+
+left to right direction
+skinparam shadowing false
+skinparam componentStyle rectangle
+
+' --- Browser (enthält Arduino Cloud) ---
+rectangle "Browser" as Browser {
+    rectangle "Arduino Cloud" as Cloud
+}
+
+' --- Arduino Cloud Agent ---
+rectangle "Arduino Cloud Agent" as Agent
+
+' --- Arduino Board ---
+rectangle "Arduino Board" as Board
+
+' --- Verbindungen ---
+Cloud <--> Agent : Web socket
+Cloud --> Agent : REST API
+Agent --> Board : flashes
+Agent <--> Board : serial
+
+@enduml
