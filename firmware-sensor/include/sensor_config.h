@@ -1,23 +1,34 @@
-#pragma once   //Diese Header-Datei darf pro Übersetzungseinheit nur einmal eingebunden werden.
+#pragma once
 /**
- * @file sensor_config.h
- * @brief Zentrale Konfiguration für den SensorNode (ohne Cloud).
- *
- * Hinweis:
- * - Nano 33 IoT nutzt 3.3V Logik. Sensor-Modul daher mit 3.3V betreiben.
- * - Wir lesen AO (Analog Output) am Pin A0 aus.
+ * SensorNode Hardware- und Mess-Konfiguration
+ * - definiert Sensor-Pin
+ * - Kalibrierwerte für trocken/nass
+ * - Schutz gegen zu häufiges Auslösen
  */
 
 #include <Arduino.h>
 
-// ---- Hardware Pins -----
-constexpr uint8_t PIN_SOIL_AO = A0;   // AO vom Sensor-Modul (LM393 Board) an A0
+/* Analoger Ausgang des Bodenfeuchtesensors */
+constexpr uint8_t PIN_SOIL_AO = A0;
 
-// ---- Messung -----
-constexpr unsigned long MEASURE_INTERVAL_MS = 5000; // alle 5 sekunden
 
-// ----- Kalibrierung (Platzhalter) ---
-// Diese Werte trägst du später nach deinen Tests ein.
-// Typisch: RAW_WET < RAW_DRY (aber das kann je nach Modul variieren!)
-constexpr int RAW_WET = 330;   // nasse Erde/Wasser ~323–333
-constexpr int RAW_DRY = 1023;   // Luft/trocken ~1020–1023
+/* Wie oft messen (Millisekunden) */
+constexpr unsigned long MEASURE_INTERVAL_MS = 1000;   // 1 Sekunde
+
+
+/* Kalibrierung des Sensors
+   RAW_DRY = Messwert in trockener Luft
+   RAW_WET = Messwert im Wasser
+   → daraus wird Prozent berechnet
+*/
+constexpr int RAW_WET = 330;      // sehr nass
+constexpr int RAW_DRY = 1023;     // sehr trocken
+
+
+/* Stabilität / Schutzlogik */
+
+// verhindert schnelles Ein/Aus nahe der Grenze
+constexpr int HYSTERESIS_PCT = 5;
+
+// Wartezeit nach Bewässerung (damit Erde Wasser aufnehmen kann)
+constexpr unsigned long COOLDOWN_MS = 120000UL;   // 2 Minuten

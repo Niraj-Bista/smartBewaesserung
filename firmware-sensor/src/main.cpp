@@ -1,75 +1,121 @@
-/*
-    @file main.cpp
-    @brief SensorNode – einfacher Offline-Test (ohne Cloud).
-    
-    Ziel:
-    - Bodenfeuchte über Analog-Ausgang (AO) einlesen
-    - Rohwert im Serial Monitor anzeigen
-    - optional: grobe Umrechnung in Prozent (mit Kalibrierwerten)
-    
-    Hardware:
-    - LM393 Sensor-Modul: VCC -> 3.3V, GND -> GND, AO -> A0
-    - Sonde am 2-poligen Anschluss des Moduls
+/**
+ * @file main.cpp
+ * @brief SensorNode – Bodenfeuchte messen und an Arduino IoT Cloud senden.
+ *
+ * Hardware:
+ *  - Arduino Nano 33 IoT
+ *  - Bodenfeuchtesensor (LM393 Modul)
+ *  - AO  -> A0
+ *  - VCC -> 3.3V
+ *  - GND -> GND
+ *
+ * Funktion:
+ *  - Liest den analogen Sensorwert
+ *  - Wandelt ihn in Prozent um (Kalibrierung in sensor_config.h)
+ *  - Überträgt Rohwert und Prozentwert an die Arduino IoT Cloud
  */
 
-#include <Arduino.h>
+
+#include "thingProperties.h"
 #include "sensor_config.h"
 
-// Hilfsfunktion: clamp (Wert begrenzen)
-static int clampInt(int value, int minVal, int maxVal)
-{
-    if (value < minVal) return minVal;
-    if (value > maxVal) return maxVal;
-    return value;
-}
+// Zeitsteuerung für Messintervalle / Cooldown
+static unsigned long lastMeasureMs = 0;
+static unsigned long lastTriggerMs = 0;
+
+// Merker für Hysterese: waren wir schon "trocken"?
+static bool wasDry = false;
 
 /*
-    @brief Wandelt einen Rohwert in eine Prozentangabe um.
-    
-    Annahme (typisch):
-    - RAW_DRY ist größer als RAW_WET.
-    - Wenn  Sensor anders herum reagiert, tausche die Werte in sensor_config.h.
+  Wandelt Sensor-Rohwert in Prozent um.
+  Annahme: RAW_DRY ~ 0% (trocken), RAW_WET ~ 100% (nass)
  */
-static int rawToPercent(int raw)
-{
-    // Schutz: Division durch 0 vermeiden
-    if (RAW_DRY == RAW_WET) return 0;
-
-    // Bei vielen Sensoren gilt: trocken -> hoher Rohwert, nass -> niedriger Rohwert
-    float pct = (float)(RAW_DRY - raw) * 100.0f / (float)(RAW_DRY - RAW_WET);
-    int pctInt = (int)(pct + 0.5f); // runden
-    return clampInt(pctInt, 0, 100);
+static int rawToPercent(int raw) {
+  raw = constrain(raw, RAW_WET, RAW_DRY);
+  int pct = map(raw, RAW_DRY, RAW_WET, 0, 100);
+  return constrain(pct, 0, 100);
 }
 
-unsigned long lastMeasureMs = 0;
+void setup() {
+  Serial.begin(9600);
+  delay(1500);
 
-void setup()
-{
-    Serial.begin(115200);
-    while (!Serial) { /* warten bis Serial bereit */ }
+  pinMode(PIN_SOIL_AO, INPUT);
 
-    pinMode(PIN_SOIL_AO, INPUT);
+  // Cloud-Properties registrieren (generiert in thingProperties.h)
+  initProperties();
 
-    Serial.println("=== SensorNode Offline Test (AO -> A0) ===");
-    Serial.println("Bewege den Sensor: Luft -> trockene Erde -> nasse Erde/Wasser.");
-    Serial.println("Notiere RAW-Werte fuer RAW_WET und RAW_DRY in sensor_config.h");
-    Serial.println();
+  // Verbindung zur IoT Cloud
+  ArduinoCloud.begin(ArduinoIoTPreferredConnection);
+
+  setDebugMessageLevel(2);
+  ArduinoCloud.printDebugInfo();
+
+  // Sinnvoller Default, falls Dashboard/Cloud noch nichts gesetzt hat
+  if (threshold_pct < 0 || threshold_pct > 100) threshold_pct = 35;
+
+  Serial.println("=== SensorNode started ===");
 }
 
-void loop()
-{
-    const unsigned long now = millis();
-    if (now - lastMeasureMs < MEASURE_INTERVAL_MS) {
-        return;
+void loop() {
+  ArduinoCloud.update();
+
+  // Messung nur im gewünschten Intervall
+  if (millis() - lastMeasureMs < MEASURE_INTERVAL_MS) return;
+  lastMeasureMs = millis();
+
+  // 1) Messen
+  moisture_raw = analogRead(PIN_SOIL_AO);
+  moisture_pct = rawToPercent(moisture_raw);
+
+  // 2) Debug-Ausgabe
+  Serial.print("raw=");
+  Serial.print(moisture_raw);
+  Serial.print(" pct=");
+  Serial.print(moisture_pct);
+  Serial.print(" thr=");
+  Serial.print(threshold_pct);
+  Serial.print(" cmd=");
+  Serial.println(watering_command ? "true" : "false");
+
+  // 3) Trigger-Logik: trocken -> watering_command = true
+  const bool below = (moisture_pct < threshold_pct);
+  const bool aboveRelease = (moisture_pct >= (threshold_pct + HYSTERESIS_PCT));
+  const bool cooldownOver = (millis() - lastTriggerMs >= COOLDOWN_MS);
+
+  // Hysterese-Merker aktualisieren:
+  // - Wenn wieder deutlich feuchter: "nicht mehr trocken"
+  if (aboveRelease) wasDry = false;
+
+  // - Wenn trocken: markieren (aber erst beim Unterschreiten)
+  if (below && !wasDry) {
+    wasDry = true;
+
+    // Nur triggern, wenn Cooldown vorbei und noch kein Command aktiv
+    if (!watering_command && cooldownOver) {
+      watering_command = true;      // bleibt TRUE bis Pump-Thing zurücksetzt
+      lastTriggerMs = millis();
+      Serial.println("-> Trigger watering_command = true (sensor)");
     }
-    lastMeasureMs = now;
-
-    const int raw = analogRead(PIN_SOIL_AO);
-    const int pct = rawToPercent(raw);
-
-    Serial.print("RAW=");
-    Serial.print(raw);
-    Serial.print("  |  moisture=");
-    Serial.print(pct);
-    Serial.println("%");
+  }
 }
+
+
+void onThresholdPctChange() {
+  threshold_pct = constrain(threshold_pct, 0, 100);
+  Serial.print("New threshold_pct: ");
+  Serial.println(threshold_pct);
+}
+
+
+void onWateringCommandChange() {
+  Serial.print("watering_command changed (cloud): ");
+  Serial.println(watering_command ? "true" : "false");
+
+  // Wenn die Pumpe es wieder auf false setzt, startet dadurch automatisch der Cooldown erneut.
+  if (!watering_command) {
+    lastTriggerMs = millis(); // optional: Cooldown ab "fertig" starten
+  }
+}
+
+
