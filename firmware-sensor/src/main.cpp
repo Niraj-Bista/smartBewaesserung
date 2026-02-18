@@ -86,26 +86,23 @@ void loop() {
   // Hysterese-Merker aktualisieren:
   // - Wenn wieder deutlich feuchter: "nicht mehr trocken"
   if (aboveRelease) wasDry = false;
-
-  // - Wenn trocken: markieren (aber erst beim Unterschreiten)
-  if (below && !wasDry) {
-    wasDry = true;
-
+  if (below) wasDry = true;
+  Serial.println("wasDry");
+  Serial.println(wasDry);
+  Serial.println("cool down over");
+  Serial.println(cooldownOver);
     // Nur triggern, wenn Cooldown vorbei und noch kein Command aktiv
-    if (!watering_command && cooldownOver) {
-      watering_command = true;      // bleibt TRUE bis Pump-Thing zurücksetzt
-      lastTriggerMs = millis();
-      Serial.println("-> Trigger watering_command = true (sensor)");
-    }
+  if (wasDry && cooldownOver) {
+    Serial.println("water the plant");
+    watering_command = true;      // bleibt TRUE bis Pump-Thing zurücksetzt
+    lastTriggerMs = millis();
+    Serial.println("-> Trigger watering_command = true (sensor)");
   }
-}
+  
+    }
+  
 
 
-void onThresholdPctChange() {
-  threshold_pct = constrain(threshold_pct, 0, 100);
-  Serial.print("New threshold_pct: ");
-  Serial.println(threshold_pct);
-}
 
 
 void onWateringCommandChange() {

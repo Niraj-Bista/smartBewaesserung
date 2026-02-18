@@ -31,4 +31,4 @@ constexpr int RAW_DRY = 1023;     // sehr trocken
 constexpr int HYSTERESIS_PCT = 5;
 
 // Wartezeit nach Bewässerung (damit Erde Wasser aufnehmen kann)
-constexpr unsigned long COOLDOWN_MS = 120000UL;   // 2 Minuten
+constexpr unsigned long COOLDOWN_MS = 10000UL;   // 10 s

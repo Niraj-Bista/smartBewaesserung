@@ -10,7 +10,7 @@ void onWaterDurationSChange();
 void onWateringCommandChange();
 
 int water_duration_s;
-bool pump_ready;
+bool pump_ready=false;
 bool pump_state;
 bool watering_command;
 

@@ -15,7 +15,6 @@ const char SSID[] = SECRET_SSID;
 const char PASS[] = SECRET_OPTIONAL_PASS;
 
 // Callback-Prototypen (werden bei Cloud-Änderungen aufgerufen)
-void onThresholdPctChange();
 void onWateringCommandChange();
 
 // ===== Cloud-Variablen =====
@@ -34,8 +33,6 @@ void initProperties() {
   ArduinoCloud.addProperty(moisture_pct, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(moisture_raw, READ, ON_CHANGE, NULL);
 
-  // Threshold darf im Dashboard geändert werden
-  ArduinoCloud.addProperty(threshold_pct, READWRITE, ON_CHANGE, onThresholdPctChange);
 
   // watering_command: kann vom Sensor (automatisch) oder Dashboard (manuell) gesetzt werden
   ArduinoCloud.addProperty(watering_command, READWRITE, ON_CHANGE, onWateringCommandChange);
